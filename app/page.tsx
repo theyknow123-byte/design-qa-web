@@ -101,11 +101,16 @@ export default function Home() {
 
       // 2. Figma API: 노드 상세 정보
       setStatus("📋 Figma 스펙 추출 중...");
+      const encodedNodeId = encodeURIComponent(parsed.nodeId!);
       const nodeRes = await fetch(
-        `https://api.figma.com/v1/files/${parsed.fileKey}/nodes?ids=${parsed.nodeId}`,
+        `https://api.figma.com/v1/files/${parsed.fileKey}/nodes?ids=${encodedNodeId}`,
         { headers: { "X-Figma-Token": figmaToken } }
       );
-      if (!nodeRes.ok) { setStatus("❌ Figma API 오류: " + nodeRes.status); setLoading(false); return; }
+      if (!nodeRes.ok) {
+        const errText = await nodeRes.text();
+        setStatus("❌ Figma API 오류: " + nodeRes.status + " " + errText.slice(0, 100));
+        setLoading(false); return;
+      }
       const nodeData = await nodeRes.json();
       const nodeDoc = nodeData.nodes[parsed.nodeId!]?.document;
       if (!nodeDoc) { setStatus("❌ 노드를 찾을 수 없어요"); setLoading(false); return; }
@@ -119,9 +124,12 @@ export default function Home() {
       // 3. Figma API: 썸네일 이미지
       setStatus("🖼️ Figma 썸네일 가져오는 중...");
       const imgRes = await fetch(
-        `https://api.figma.com/v1/images/${parsed.fileKey}?ids=${parsed.nodeId}&format=png&scale=2`,
+        `https://api.figma.com/v1/images/${parsed.fileKey}?ids=${encodedNodeId}&format=png&scale=2`,
         { headers: { "X-Figma-Token": figmaToken } }
       );
+      if (!imgRes.ok) {
+        setStatus("⚠️ 썸네일 가져오기 실패, 비교는 계속 진행");
+      }
       const imgData = await imgRes.json();
       const figmaImageUrl = imgData.images?.[parsed.nodeId!] || null;
 
@@ -218,17 +226,19 @@ export default function Home() {
 
       // 6. 리포트 저장
       const reportId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-      localStorage.setItem(`qa-report-${reportId}`, JSON.stringify({
+      // localStorage 용량 제한 때문에 스크린샷은 sessionStorage에 따로 저장
+      const reportPayload = {
         figmaImageUrl,
-        figmaSpecs,
-        demoScreenshot,
         demoViewport,
-        demoCss,
         issues,
         createdAt: new Date().toISOString(),
         frameWidth: nodeDoc.absoluteBoundingBox?.width ?? 390,
         frameHeight: nodeDoc.absoluteBoundingBox?.height ?? 844,
-      }));
+      };
+      localStorage.setItem(`qa-report-${reportId}`, JSON.stringify(reportPayload));
+      if (demoScreenshot) {
+        try { sessionStorage.setItem(`qa-screenshot-${reportId}`, demoScreenshot); } catch {}
+      }
 
       setStatus(`✅ ${issues.length}개 이슈 발견! 리포트로 이동...`);
       router.push(`/report?id=${reportId}`);

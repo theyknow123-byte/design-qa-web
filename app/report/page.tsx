@@ -38,11 +38,17 @@ function ReportContent() {
   const [hoveredIssue, setHoveredIssue] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
 
+  const [demoScreenshot, setDemoScreenshot] = useState<string | null>(null);
+
   useEffect(() => {
     if (!id) return;
     const raw = localStorage.getItem(`qa-report-${id}`);
     if (!raw) return;
     setReport(JSON.parse(raw));
+    try {
+      const ss = sessionStorage.getItem(`qa-screenshot-${id}`);
+      if (ss) setDemoScreenshot(ss);
+    } catch {}
   }, [id]);
 
   const handleShare = () => {
@@ -135,9 +141,9 @@ function ReportContent() {
             🖥️ 데모 구현 {issues.length > 0 && <span className="text-red-500 ml-1">({issues.length}개 이슈)</span>}
           </div>
           <div className="flex-1 overflow-auto p-4 flex items-start justify-center">
-            {report.demoScreenshot ? (
+            {demoScreenshot ? (
               <div className="relative inline-block">
-                <img src={report.demoScreenshot} alt="demo" className="max-w-full shadow-lg rounded-lg" />
+                <img src={demoScreenshot} alt="demo" className="max-w-full shadow-lg rounded-lg" />
                 {issues.map((issue) => {
                   const color = SEV_COLOR[issue.severity];
                   return (
