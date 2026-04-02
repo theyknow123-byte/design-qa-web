@@ -127,11 +127,11 @@ export default function Home() {
         `https://api.figma.com/v1/images/${parsed.fileKey}?ids=${encodedNodeId}&format=png&scale=2`,
         { headers: { "X-Figma-Token": figmaToken } }
       );
-      if (!imgRes.ok) {
-        setStatus("⚠️ 썸네일 가져오기 실패, 비교는 계속 진행");
+      let figmaImageUrl: string | null = null;
+      if (imgRes.ok) {
+        const imgData = await imgRes.json();
+        figmaImageUrl = imgData.images?.[parsed.nodeId!] || null;
       }
-      const imgData = await imgRes.json();
-      const figmaImageUrl = imgData.images?.[parsed.nodeId!] || null;
 
       // 4. 데모 데이터 파싱
       const demoParsed = JSON.parse(demoData);
