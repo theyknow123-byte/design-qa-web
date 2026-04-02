@@ -128,9 +128,14 @@ export default function Home() {
         { headers: { "X-Figma-Token": figmaToken } }
       );
       let figmaImageUrl: string | null = null;
-      if (imgRes.ok) {
-        const imgData = await imgRes.json();
-        figmaImageUrl = imgData.images?.[parsed.nodeId!] || null;
+      try {
+        if (imgRes.ok) {
+          const imgText = await imgRes.text();
+          const imgData = JSON.parse(imgText);
+          figmaImageUrl = imgData.images?.[parsed.nodeId!] || null;
+        }
+      } catch {
+        // 썸네일 실패해도 비교는 계속
       }
 
       // 4. 데모 데이터 파싱
